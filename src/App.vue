@@ -5,6 +5,7 @@ import CardList from './components/CardList.vue';
 import Header from './components/Header.vue';
 
 const items = ref([]);
+
 const filters = reactive({
   sortBy: 'title',
   searchQuery: ''
@@ -18,6 +19,45 @@ const onChangeSearchInput = (e) => {
   filters.searchQuery = e.target.value;
 };
 
+const fetchFavorites = async () => {
+  try {
+    const { data: favorites } = await axios.get(`https://96412ad6d18eb9e5.mokky.dev/favorites`);
+    items.value = items.value.map((item) => {
+      const favorite = favorites.find((favorite) => favorite.parentId === item.id);
+
+      if (!favorite) {
+        return item;
+      }
+
+      return {
+        ...item,
+        isFavorite: true,
+        favoriteId: favorite.id
+      };
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const addToFavorite = async (item) => {
+  try {
+    item.isFavorite = !item.isFavorite;
+    if (!item.isFavorite) {
+      const obj = {
+        parentId: item.id
+      };
+      const { data } = await axios.post(`https://96412ad6d18eb9e5.mokky.dev/favorites`, obj);
+      item.favoriteId = data.id;
+    } else {
+      await axios.delete(`https://96412ad6d18eb9e5.mokky.dev/favorites/${item.favoriteId}`);
+      item.favoriteId = null;
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 const fetchItems = async () => {
   try {
     const params = {
@@ -29,13 +69,20 @@ const fetchItems = async () => {
     const { data } = await axios.get(`https://96412ad6d18eb9e5.mokky.dev/items`, {
       params
     });
-    items.value = data;
+    items.value = data.map((obj) => ({
+      ...obj,
+      isFavorite: false,
+      favoriteId: null,
+      isAdded: false
+    }));
   } catch (error) {
     console.log(error);
   }
 };
 
-onMounted(fetchItems);
+onMounted(async () => {
+  await fetchItems(), await fetchFavorites();
+});
 
 watch(filters, fetchItems);
 </script>
@@ -66,7 +113,7 @@ watch(filters, fetchItems);
         </div>
       </div>
       <div class="mt-10">
-        <CardList :items="items" />
+        <CardList :items="items" @addToFavorite="addToFavorite" />
       </div>
     </div>
   </div>
