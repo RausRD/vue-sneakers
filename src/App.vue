@@ -1,20 +1,13 @@
 <script setup>
-import { computed,  provide,  ref, watch } from 'vue';
-import axios from 'axios';
+import { computed, provide, ref, watch } from 'vue';
 import Header from './components/Header.vue';
 import Drawer from './components/Drawer.vue';
 
-
 const cart = ref([]);
 const drawerOpen = ref(false);
-const isCreatingOrder = ref(false);
 
 const totalPrice = computed(() => cart.value.reduce((acc, item) => acc + item.price, 0));
 const vatPrice = computed(() => Math.round((totalPrice.value * 5) / 100));
-
-const cartIsEmpty = computed(() => cart.value.length === 0);
-
-const disabledCartButton = computed(() => isCreatingOrder.value || cartIsEmpty.value);
 
 const closeDrawer = () => {
   drawerOpen.value = false;
@@ -34,23 +27,6 @@ const removeFromCart = (item) => {
   item.isAdded = false;
 };
 
-const createOrder = async () => {
-  try {
-    isCreatingOrder.value = true;
-    const { data } = await axios.post('https://96412ad6d18eb9e5.mokky.dev/orders', {
-      items: cart.value,
-      totalPrice: totalPrice.value
-    });
-    cart.value = [];
-    return data;
-  } catch (error) {
-    console.log(error);
-  } finally {
-    isCreatingOrder.value = false;
-  }
-};
-
-
 watch(
   cart,
   () => {
@@ -69,13 +45,7 @@ provide('cart', {
 </script>
 
 <template>
-  <Drawer
-    v-if="drawerOpen"
-    :total-price="totalPrice"
-    :vat-price="vatPrice"
-    @create-order="createOrder"
-    :button-disabled="disabledCartButton"
-  />
+  <Drawer v-if="drawerOpen" :total-price="totalPrice" :vat-price="vatPrice" />
   <div class="w-4/5 m-auto bg-white shadow-xl rounded-xl mt-14">
     <Header :total-price="totalPrice" @open-drawer="openDrawer" />
 
